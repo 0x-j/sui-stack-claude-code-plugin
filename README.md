@@ -303,6 +303,17 @@ Ensure plugin is in the correct location:
 
 Verify `plugin.json` is at `.claude-plugin/plugin.json`
 
+### SSH Key Required for Installation
+
+The plugin installation uses `git clone` with SSH under the hood, so you need to:
+
+1. Set up SSH keys locally
+2. Add the SSH key to your GitHub account
+
+Follow GitHub's guide: https://docs.github.com/en/authentication/connecting-to-github-with-ssh
+
+Without proper SSH setup, the installation will fail during the git clone step.
+
 ### Skills Not Activating
 
 Check that your query includes relevant keywords:
