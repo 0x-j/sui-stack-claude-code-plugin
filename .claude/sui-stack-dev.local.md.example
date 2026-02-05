@@ -1,0 +1,38 @@
+---
+# Network configuration
+network: testnet  # Options: mainnet, testnet, devnet
+rpc_endpoint: https://fullnode.testnet.sui.io:443
+
+# Active address for transactions
+active_address: 0x...  # Replace with your Sui address
+
+# Gas configuration
+gas_budget: 10000000  # Default gas budget in MIST (0.01 SUI)
+
+# Walrus configuration
+walrus_enabled: true
+walrus_endpoint: https://testnet-publisher.walrus.space
+
+# Explorer preference
+explorer: suiscan  # Options: suiscan, suivision
+---
+
+# Sui Stack Development Notes
+
+## Deployed Contracts
+
+Add your deployed contract addresses here:
+
+- **MyContract**: `0x...` (deployed on testnet)
+- **MyNFT**: `0x...` (deployed on testnet)
+
+## Walrus Blobs
+
+Track your Walrus storage:
+
+- **Logo**: Blob ID `abc123...`
+- **Assets**: Blob ID `def456...`
+
+## Team Notes
+
+Add project-specific configuration notes, conventions, or reminders here.
