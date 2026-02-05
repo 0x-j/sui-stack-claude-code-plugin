@@ -70,7 +70,7 @@ Vite handles WASM modules correctly for client-side usage.
 3. **Use Upload Relay Pattern:**
 Upload through Walrus aggregator HTTP API (see Upload Patterns below).
 
-**Reference example:** /Users/dev1/go/src/github.clom/0x-j/hello-sui-stack
+**Reference example:** https://github.com/0x-j/hello-sui-stack
 
 ## Storage Patterns
 
