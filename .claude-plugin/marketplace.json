@@ -1,0 +1,42 @@
+{
+  "name": "sui-stack-plugins",
+  "owner": {
+    "name": "0x-j",
+    "email": "contact@0x-j.com"
+  },
+  "metadata": {
+    "description": "Official marketplace for Sui blockchain development plugins",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "sui-stack-dev",
+      "source": {
+        "source": "github",
+        "repo": "0x-j/sui-stack-claude-code-plugin"
+      },
+      "description": "Comprehensive development toolkit for building on the Sui blockchain stack, covering Move contracts, TypeScript SDK, wallet integration, Walrus storage, and Seal secrets management",
+      "version": "0.1.0",
+      "author": {
+        "name": "J",
+        "email": "contact@0x-j.com"
+      },
+      "homepage": "https://github.com/0x-j/sui-stack-claude-code-plugin",
+      "repository": "https://github.com/0x-j/sui-stack-claude-code-plugin",
+      "license": "MIT",
+      "keywords": [
+        "sui",
+        "blockchain",
+        "move",
+        "walrus",
+        "seal",
+        "web3",
+        "dapp",
+        "smart-contracts",
+        "typescript",
+        "sdk"
+      ],
+      "category": "blockchain"
+    }
+  ]
+}

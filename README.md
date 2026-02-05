@@ -32,28 +32,25 @@ Specialized agents for code analysis and project setup:
 
 ## Installation
 
-### From Marketplace (Coming Soon)
+### From Marketplace (Recommended)
+
+First, add the Sui Stack marketplace:
 
 ```bash
-claude plugins install sui-stack-dev
+/plugin marketplace add 0x-j/sui-stack-claude-code-plugin
 ```
 
-### Local Development
+Then install the plugin:
 
 ```bash
-# Clone the repository
-git clone https://github.com/0x-j/sui-stack-claude-code-plugin
-
-# Use with Claude Code
-cc --plugin-dir /path/to/sui-stack-claude-code-plugin
+/plugin install sui-stack-dev@sui-stack-plugins
 ```
 
-### Project-Specific Installation
-
-Copy to your project's `.claude-plugin/` directory:
+Or combine both steps by adding the marketplace URL directly:
 
 ```bash
-cp -r sui-stack-claude-code-plugin your-project/.claude-plugin/
+/plugin marketplace add https://github.com/0x-j/sui-stack-claude-code-plugin
+/plugin install sui-stack-dev@sui-stack-plugins
 ```
 
 ## Prerequisites
