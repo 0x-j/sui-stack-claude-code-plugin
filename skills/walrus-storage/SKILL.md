@@ -1,681 +1,663 @@
 ---
 name: Walrus Storage
-description: This skill should be used when the user asks about "Walrus storage", "upload to Walrus", "decentralized storage Sui", "Walrus blob", "@mysten/walrus", "store files on Walrus", or mentions decentralized storage on Sui. Provides comprehensive guidance for using Walrus for decentralized blob storage.
-version: 0.1.0
+description: This skill should be used when the user asks about "Walrus storage", "upload to Walrus", "decentralized storage Sui", "Walrus blob", "@mysten/walrus", "store files on Walrus", or mentions decentralized storage on Sui. Provides comprehensive guidance for using Walrus for decentralized blob storage with modern SDK patterns.
+version: 1.0.0
 ---
 
 # Walrus Storage
 
-Provides expert guidance for using Walrus, a decentralized storage network built for Sui, to store and retrieve blobs (files, images, videos, etc.) in a cost-effective and performant way.
+Provides expert guidance for using Walrus, a decentralized storage and data availability protocol built for Sui. This guide focuses on the **modern TypeScript SDK** (2024-2025) with proper client setup, upload relay patterns, and dApp Kit integration.
 
 ## Overview
 
 Walrus is a decentralized storage and data availability protocol optimized for large binary objects (blobs). It provides fast, reliable storage with strong availability guarantees, making it ideal for NFT media, application assets, and user-generated content.
 
 **Key features:**
-- **Decentralized storage** - Distributed across multiple storage nodes
+- **Decentralized storage** - Distributed across multiple storage nodes with erasure coding
 - **Cost-effective** - Pay once for storage epochs, no ongoing fees
 - **Fast retrieval** - Low-latency blob access via HTTP
 - **Blob certification** - Cryptographic proofs of storage
-- **Sui integration** - Native integration with Sui blockchain
+- **Native Sui integration** - Blobs are Sui objects with on-chain metadata
 
-**Official documentation:** https://docs.wal.app/ and https://sdk.mystenlabs.com/walrus
+**Official documentation:**
+- https://docs.wal.app/
+- https://sdk.mystenlabs.com/walrus
+- Example project: https://github.com/0x-j/hello-sui-stack
 
-## Installation
+## Installation & Prerequisites
 
-### Install Walrus SDK
+### Install Required Packages
 
 ```bash
-# Using npm
-npm install @mysten/walrus
+# Core dependencies
+npm install @mysten/walrus @mysten/walrus-wasm @mysten/sui
+
+# For React dApps
+npm install @mysten/dapp-kit
 
 # Using yarn
-yarn add @mysten/walrus
+yarn add @mysten/walrus @mysten/walrus-wasm @mysten/sui @mysten/dapp-kit
 
 # Using pnpm
-pnpm add @mysten/walrus
+pnpm add @mysten/walrus @mysten/walrus-wasm @mysten/sui @mysten/dapp-kit
 ```
 
-### Required Dependencies
+### Critical: Vite WASM Configuration
 
-```bash
-# Also need Sui SDK for blockchain interactions
-npm install @mysten/sui
-```
+**REQUIRED FOR VITE PROJECTS:** The Walrus SDK uses WASM internally. You must configure Vite to exclude WASM modules from pre-bundling.
 
-## Important: Next.js WASM Compatibility Issue
-
-**CRITICAL:** The Walrus SDK uses WASM internally and does NOT work with Next.js client-side rendering due to WASM module incompatibilities.
-
-**Solutions:**
-
-1. **Use Server-Side (Recommended for Next.js):**
-```typescript
-// app/api/upload/route.ts (Next.js App Router)
-export async function POST(request: Request) {
-  const { uploadToWalrus } = await import('@mysten/walrus');
-  // Upload logic here
-}
-
-// pages/api/upload.ts (Next.js Pages Router)
-export default async function handler(req, res) {
-  const { uploadToWalrus } = await import('@mysten/walrus');
-  // Upload logic here
-}
-```
-
-2. **Use Vite instead of Next.js:**
-Vite handles WASM modules correctly for client-side usage.
-
-3. **Use Upload Relay Pattern:**
-Upload through Walrus aggregator HTTP API (see Upload Patterns below).
-
-**Reference example:** https://github.com/0x-j/hello-sui-stack
-
-## Storage Patterns
-
-Walrus offers two main approaches for storing blobs:
-
-### 1. Upload Relay Pattern (HTTP API)
-
-Upload through a Walrus aggregator/publisher HTTP endpoint. Best for:
-- Client-side uploads (browsers)
-- Next.js client components
-- No SDK installation needed
+Add to `vite.config.ts`:
 
 ```typescript
-// Upload via HTTP relay
-async function uploadViaRelay(file: File): Promise<string> {
-  const formData = new FormData();
-  formData.append('file', file);
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-  const response = await fetch('https://publisher.walrus-testnet.walrus.space/v1/store', {
-    method: 'PUT',
-    body: file,
-  });
+export default defineConfig({
+  plugins: [react()],
+  build: {
+    target: 'esnext',
+  },
+  optimizeDeps: {
+    exclude: ['@mysten/walrus-wasm'], // CRITICAL: Don't pre-bundle WASM
+    esbuildOptions: {
+      target: 'esnext',
+    },
+  },
+  worker: {
+    format: 'es',
+  },
+});
+```
 
-  const result = await response.json();
+**Why this is required:**
+- Vite tries to pre-bundle dependencies for faster loading
+- WASM modules cannot be pre-bundled (they need to be loaded as-is)
+- Without this config, you'll get: `WebAssembly.instantiate(): expected magic word 00 61 73 6d, found 3c 21 64 6f`
 
-  if (result.newlyCreated) {
-    return result.newlyCreated.blobObject.blobId;
-  } else if (result.alreadyCertified) {
-    return result.alreadyCertified.blobId;
+**Next.js Warning:** The Walrus SDK has WASM compatibility issues with Next.js client-side rendering. For Next.js:
+- Use server-side only (API routes, server actions)
+- Or use Vite-based projects (recommended for client-side Walrus)
+
+See complete vite.config.ts example in `/examples/vite.config.ts`
+
+## Understanding Upload Patterns
+
+Before implementing, understand the two storage payment models:
+
+### Upload Relay Pattern (User Pays) - PRIMARY
+
+**Use when:**
+- Building browser dApps where users pay for their own storage
+- Users have connected wallets
+- You want users to control and own their storage costs
+
+**Architecture:**
+```
+User Browser → Upload Relay Server → Walrus Storage Nodes
+              (Testnet: upload-relay.testnet.walrus.space)
+              ↓
+          User's wallet pays for storage
+```
+
+**Key characteristics:**
+- User pays gas fees for storage
+- User signs transactions with their wallet
+- Requires dApp Kit integration (`useCurrentAccount()`)
+- Best for NFT minting, user-generated content, profile pictures
+
+**Configuration:**
+```typescript
+walrus({
+  uploadRelay: {
+    host: 'https://upload-relay.testnet.walrus.space',
+    sendTip: { max: 1_000_000 }, // Max tip in MIST (optional)
+  },
+})
+```
+
+### Publisher Pattern (App Pays) - SECONDARY
+
+**Use when:**
+- Building server-side applications
+- Your backend pays for storage
+- Batch uploading content
+- No user wallet interaction
+
+**Architecture:**
+```
+Your Backend → Publisher Server → Walrus Storage Nodes
+              (Testnet: publisher.walrus-testnet.walrus.space)
+              ↓
+          Your backend wallet pays
+```
+
+**Key characteristics:**
+- Your application pays gas fees
+- No user wallet needed
+- Best for server-side batch operations
+- Requires backend wallet/keypair management
+
+**Configuration:**
+```typescript
+walrus({
+  publisher: 'https://publisher.walrus-testnet.walrus.space',
+})
+```
+
+**Decision Tree:**
+- Browser dApp with wallet? → **Upload Relay**
+- Server-side batch upload? → **Publisher**
+- NFT minting by users? → **Upload Relay**
+- Pre-loading app assets? → **Publisher**
+
+## Client Setup: Two Clients Required
+
+When building a Walrus-enabled dApp, you typically need **TWO different clients**:
+
+### 1. SuiJsonRpcClient (For dApp Kit)
+
+Used for dApp Kit's `SuiClientProvider` to manage wallet connections and network state.
+
+```typescript
+import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
+import { SuiClientProvider, WalletProvider } from '@mysten/dapp-kit';
+
+// Define networks for dApp Kit
+const networks = {
+  testnet: new SuiJsonRpcClient({
+    network: 'testnet', // REQUIRED
+    url: 'https://fullnode.testnet.sui.io:443', // REQUIRED
+  }),
+  mainnet: new SuiJsonRpcClient({
+    network: 'mainnet',
+    url: 'https://fullnode.mainnet.sui.io:443',
+  }),
+};
+
+// In your root component
+function App() {
+  return (
+    <SuiClientProvider networks={networks} defaultNetwork="testnet">
+      <WalletProvider autoConnect>
+        <YourApp />
+      </WalletProvider>
+    </SuiClientProvider>
+  );
+}
+```
+
+**Important:** Both `network` and `url` parameters are required. Omitting either will cause errors.
+
+### 2. SuiGrpcClient (For Walrus SDK)
+
+Used for Walrus operations (upload, download). Uses gRPC protocol.
+
+```typescript
+import { SuiGrpcClient } from '@mysten/sui/grpc';
+import { walrus } from '@mysten/walrus';
+
+// Create Walrus-enabled client
+const walrusClient = new SuiGrpcClient({
+  network: 'testnet',
+  baseUrl: 'https://grpc.testnet.sui.io:443',
+}).$extend(
+  walrus({
+    uploadRelay: {
+      host: 'https://upload-relay.testnet.walrus.space',
+      sendTip: { max: 1_000_000 },
+    },
+  })
+);
+```
+
+**Why two clients?**
+- **SuiJsonRpcClient** uses JSON-RPC protocol (compatible with dApp Kit providers)
+- **SuiGrpcClient** uses gRPC protocol (required by Walrus SDK)
+- They have different constructor parameters: `url` vs `baseUrl`
+
+### Complete Provider Setup
+
+Recommended pattern: Create a `walrusClient.ts` for centralized configuration:
+
+```typescript
+// src/lib/walrusClient.ts
+import { SuiGrpcClient } from '@mysten/sui/grpc';
+import { walrus } from '@mysten/walrus';
+
+export const walrusClient = new SuiGrpcClient({
+  network: 'testnet',
+  baseUrl: 'https://grpc.testnet.sui.io:443',
+}).$extend(
+  walrus({
+    uploadRelay: {
+      host: 'https://upload-relay.testnet.walrus.space',
+      sendTip: { max: 1_000_000 }, // Optional tip for relay operators
+    },
+  })
+);
+
+// For mainnet (when ready)
+export const walrusClientMainnet = new SuiGrpcClient({
+  network: 'mainnet',
+  baseUrl: 'https://grpc.mainnet.sui.io:443',
+}).$extend(
+  walrus({
+    uploadRelay: {
+      host: 'https://upload-relay.walrus.space',
+      sendTip: { max: 1_000_000 },
+    },
+  })
+);
+```
+
+See complete example in `/examples/walrusClient.ts` and `/examples/dAppProviders.tsx`
+
+## Uploading Files (Modern API)
+
+### Basic Upload with Wallet Signer
+
+The modern Walrus SDK uses `WalrusFile.from()` to create files and `client.walrus.writeFiles()` to upload.
+
+```typescript
+import { WalrusFile } from '@mysten/walrus';
+import { useCurrentAccount } from '@mysten/dapp-kit';
+import { walrusClient } from './lib/walrusClient';
+
+async function uploadFile(file: File) {
+  // Get wallet account from dApp Kit
+  const currentAccount = useCurrentAccount();
+
+  if (!currentAccount) {
+    throw new Error('No wallet connected');
   }
 
-  throw new Error('Upload failed');
-}
-
-// Usage
-const file = document.querySelector('input[type="file"]').files[0];
-const blobId = await uploadViaRelay(file);
-console.log('Blob ID:', blobId);
-```
-
-### 2. Publisher Pattern (SDK)
-
-Upload directly using the SDK. Best for:
-- Server-side applications
-- Node.js scripts
-- Vite applications (client-side)
-
-```typescript
-import { WalrusClient } from '@mysten/walrus';
-
-const client = new WalrusClient({
-  aggregatorUrl: 'https://aggregator.walrus-testnet.walrus.space',
-  publisherUrl: 'https://publisher.walrus-testnet.walrus.space',
-});
-
-async function uploadViaSdk(data: Uint8Array): Promise<string> {
-  const result = await client.store(data, {
-    epochs: 1,
+  // Create WalrusFile
+  const walrusFile = WalrusFile.from({
+    contents: file, // File or Blob
+    identifier: file.name,
+    tags: {
+      'content-type': file.type,
+    },
   });
 
-  if (result.newlyCreated) {
-    return result.newlyCreated.blobObject.blobId;
-  } else if (result.alreadyCertified) {
-    return result.alreadyCertified.blobId;
-  }
-
-  throw new Error('Upload failed');
-}
-```
-
-## Client Setup
-
-### Initialize Walrus Client
-
-```typescript
-import { WalrusClient } from '@mysten/walrus';
-
-// Testnet configuration
-const client = new WalrusClient({
-  aggregatorUrl: 'https://aggregator.walrus-testnet.walrus.space',
-  publisherUrl: 'https://publisher.walrus-testnet.walrus.space',
-});
-
-// Mainnet configuration (when available)
-const mainnetClient = new WalrusClient({
-  aggregatorUrl: 'https://aggregator.walrus.space',
-  publisherUrl: 'https://publisher.walrus.space',
-});
-```
-
-**Configuration options:**
-- `aggregatorUrl` - URL for reading blobs
-- `publisherUrl` - URL for uploading blobs
-- `systemObject` - Optional: Sui system object ID
-- `suiClient` - Optional: Custom SuiClient instance
-
-## Uploading Blobs
-
-### Upload File from Browser
-
-```typescript
-import { WalrusClient } from '@mysten/walrus';
-
-const client = new WalrusClient({
-  publisherUrl: 'https://publisher.walrus-testnet.walrus.space',
-});
-
-async function handleFileUpload(event: Event) {
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (!file) return;
-
-  // Convert file to Uint8Array
-  const arrayBuffer = await file.arrayBuffer();
-  const data = new Uint8Array(arrayBuffer);
-
-  // Upload to Walrus
-  const result = await client.store(data, {
-    epochs: 5, // Store for 5 epochs (~5 days on testnet)
+  // Upload with signer
+  const results = await walrusClient.walrus.writeFiles({
+    files: [walrusFile],
+    epochs: 5, // Storage duration (≈5 days on testnet)
+    deletable: false, // Set true if you want to delete later
+    signer: currentAccount, // REQUIRED: Wallet account
   });
 
-  const blobId = result.newlyCreated?.blobObject.blobId ||
-                 result.alreadyCertified?.blobId;
-
+  // Extract blob ID
+  const blobId = results[0].info.blobId;
   console.log('Uploaded blob ID:', blobId);
+
   return blobId;
 }
-
-// Usage in HTML
-<input type="file" onChange={handleFileUpload} />
 ```
 
-### Upload Text Data
+**Key Points:**
+- `signer` parameter is **REQUIRED** - it's the connected wallet account
+- Get signer from `useCurrentAccount()` hook (dApp Kit)
+- `WalrusFile.from()` creates the file object
+- `writeFiles()` accepts array of files (can upload multiple at once)
+- Returns array of results with `blobId` and metadata
+
+### Upload JSON Metadata (NFT Pattern)
 
 ```typescript
-async function uploadText(text: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(text);
+import { WalrusFile } from '@mysten/walrus';
+import { useCurrentAccount } from '@mysten/dapp-kit';
 
-  const result = await client.store(data, {
-    epochs: 1,
-  });
-
-  return result.newlyCreated?.blobObject.blobId ||
-         result.alreadyCertified?.blobId ||
-         '';
-}
-
-// Usage
-const blobId = await uploadText('Hello Walrus!');
-```
-
-### Upload JSON Data
-
-```typescript
-async function uploadJson(obj: any): Promise<string> {
-  const json = JSON.stringify(obj);
-  const encoder = new TextEncoder();
-  const data = encoder.encode(json);
-
-  const result = await client.store(data, {
-    epochs: 10,
-  });
-
-  return result.newlyCreated?.blobObject.blobId ||
-         result.alreadyCertified?.blobId ||
-         '';
-}
-
-// Usage
-const metadata = {
-  name: 'My NFT',
-  description: 'A cool NFT',
-  image: 'walrus://blob-id',
-};
-const blobId = await uploadJson(metadata);
-```
-
-### Upload with Progress Tracking
-
-```typescript
-async function uploadWithProgress(
-  file: File,
-  onProgress: (progress: number) => void
-): Promise<string> {
-  const chunkSize = 1024 * 1024; // 1MB chunks
-  const arrayBuffer = await file.arrayBuffer();
-  const data = new Uint8Array(arrayBuffer);
-
-  // Note: Progress tracking requires custom implementation
-  // The SDK doesn't provide built-in progress callbacks
-
-  onProgress(0);
-
-  const result = await client.store(data, {
-    epochs: 5,
-  });
-
-  onProgress(100);
-
-  return result.newlyCreated?.blobObject.blobId ||
-         result.alreadyCertified?.blobId ||
-         '';
-}
-```
-
-## Retrieving Blobs
-
-### Read Blob Data
-
-```typescript
-import { WalrusClient } from '@mysten/walrus';
-
-const client = new WalrusClient({
-  aggregatorUrl: 'https://aggregator.walrus-testnet.walrus.space',
-});
-
-async function readBlob(blobId: string): Promise<Uint8Array> {
-  const data = await client.read(blobId);
-  return data;
-}
-
-// Convert to text
-async function readBlobAsText(blobId: string): Promise<string> {
-  const data = await client.read(blobId);
-  const decoder = new TextDecoder();
-  return decoder.decode(data);
-}
-
-// Parse as JSON
-async function readBlobAsJson(blobId: string): Promise<any> {
-  const text = await readBlobAsText(blobId);
-  return JSON.parse(text);
-}
-```
-
-### Get Blob URL
-
-```typescript
-// Direct HTTP URL for blob
-function getBlobUrl(blobId: string): string {
-  return `https://aggregator.walrus-testnet.walrus.space/v1/${blobId}`;
-}
-
-// Use in HTML
-function renderImage(blobId: string) {
-  const url = getBlobUrl(blobId);
-  return <img src={url} alt="Stored on Walrus" />;
-}
-
-// Use in video player
-function renderVideo(blobId: string) {
-  const url = getBlobUrl(blobId);
-  return <video src={url} controls />;
-}
-```
-
-### Check Blob Availability
-
-```typescript
-async function isBlobAvailable(blobId: string): Promise<boolean> {
-  try {
-    const url = `https://aggregator.walrus-testnet.walrus.space/v1/${blobId}`;
-    const response = await fetch(url, { method: 'HEAD' });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-```
-
-## Storage Management
-
-### Understand Storage Epochs
-
-Walrus storage is paid per epoch:
-- **Epoch duration:** Approximately 1 day on testnet
-- **Minimum storage:** 1 epoch
-- **Maximum storage:** ~5000 epochs (~13 years)
-- **Cost:** Determined by blob size and epoch count
-
-```typescript
-// Store for 30 days (30 epochs on testnet)
-await client.store(data, {
-  epochs: 30,
-});
-
-// Store for 1 year (~365 epochs)
-await client.store(data, {
-  epochs: 365,
-});
-```
-
-### Calculate Storage Cost
-
-```typescript
-import { WalrusClient } from '@mysten/walrus';
-import { SuiClient } from '@mysten/sui/client';
-
-const suiClient = new SuiClient({ url: getFullnodeUrl('testnet') });
-const walrusClient = new WalrusClient({
-  publisherUrl: 'https://publisher.walrus-testnet.walrus.space',
-  suiClient,
-});
-
-async function estimateCost(
-  dataSize: number,
-  epochs: number
-): Promise<bigint> {
-  // Cost calculation is based on:
-  // - Blob size in bytes
-  // - Number of epochs
-  // - Current storage price per byte-epoch
-
-  // Note: Actual cost estimation requires querying Walrus system object
-  // This is a simplified example
-  const COST_PER_KB_PER_EPOCH = 1000n; // MIST
-  const sizeInKb = BigInt(Math.ceil(dataSize / 1024));
-  return sizeInKb * BigInt(epochs) * COST_PER_KB_PER_EPOCH;
-}
-```
-
-### Extend Storage Period
-
-```typescript
-// Note: Storage extension requires interacting with Sui blockchain
-// to update the blob object's epoch range
-
-import { Transaction } from '@mysten/sui/transactions';
-
-async function extendStorage(
-  blobId: string,
-  additionalEpochs: number,
-  signer: any
-): Promise<void> {
-  const tx = new Transaction();
-
-  // Call Walrus system contract to extend storage
-  tx.moveCall({
-    target: '0xWALRUS_PACKAGE::storage::extend',
-    arguments: [
-      tx.object('WALRUS_SYSTEM_OBJECT'),
-      tx.pure.string(blobId),
-      tx.pure.u64(additionalEpochs),
-    ],
-  });
-
-  await suiClient.signAndExecuteTransaction({
-    transaction: tx,
-    signer,
-  });
-}
-```
-
-## Integration with Sui NFTs
-
-### Store NFT Metadata on Walrus
-
-```typescript
-import { WalrusClient } from '@mysten/walrus';
-
-async function createNftMetadata(
+async function uploadNftMetadata(
   name: string,
   description: string,
-  imageFile: File
-): Promise<string> {
-  const client = new WalrusClient({
-    publisherUrl: 'https://publisher.walrus-testnet.walrus.space',
-  });
+  imageBlobId: string
+) {
+  const currentAccount = useCurrentAccount();
 
-  // Upload image first
-  const imageBuffer = await imageFile.arrayBuffer();
-  const imageData = new Uint8Array(imageBuffer);
-  const imageResult = await client.store(imageData, { epochs: 365 });
-  const imageBlobId = imageResult.newlyCreated?.blobObject.blobId ||
-                      imageResult.alreadyCertified?.blobId;
+  if (!currentAccount) {
+    throw new Error('No wallet connected');
+  }
 
-  // Create metadata JSON
+  // Create metadata object
   const metadata = {
     name,
     description,
     image: `walrus://${imageBlobId}`,
-    attributes: [],
+    attributes: [
+      { trait_type: 'Background', value: 'Blue' },
+      { trait_type: 'Rarity', value: 'Common' },
+    ],
   };
 
-  // Upload metadata
-  const metadataJson = JSON.stringify(metadata);
-  const metadataData = new TextEncoder().encode(metadataJson);
-  const metadataResult = await client.store(metadataData, { epochs: 365 });
+  // Convert to WalrusFile
+  const metadataJson = JSON.stringify(metadata, null, 2);
+  const blob = new Blob([metadataJson], { type: 'application/json' });
 
-  return metadataResult.newlyCreated?.blobObject.blobId ||
-         metadataResult.alreadyCertified?.blobId ||
-         '';
+  const walrusFile = WalrusFile.from({
+    contents: blob,
+    identifier: 'metadata.json',
+    tags: {
+      'content-type': 'application/json',
+    },
+  });
+
+  // Upload
+  const results = await walrusClient.walrus.writeFiles({
+    files: [walrusFile],
+    epochs: 365, // Store for ~1 year
+    deletable: false,
+    signer: currentAccount,
+  });
+
+  return results[0].info.blobId;
 }
 ```
 
-### Mint NFT with Walrus Storage
+### Batch Upload Multiple Files
 
 ```typescript
-import { Transaction } from '@mysten/sui/transactions';
+import { WalrusFile } from '@mysten/walrus';
 
-async function mintNftWithWalrusMetadata(
-  metadataBlobId: string,
-  signer: any
-): Promise<void> {
-  const tx = new Transaction();
+async function batchUpload(files: File[], currentAccount: any) {
+  // Create WalrusFiles for all files
+  const walrusFiles = files.map((file) =>
+    WalrusFile.from({
+      contents: file,
+      identifier: file.name,
+      tags: {
+        'content-type': file.type,
+      },
+    })
+  );
 
-  // Construct Walrus URL
-  const metadataUrl = `walrus://${metadataBlobId}`;
-
-  // Call NFT minting function
-  tx.moveCall({
-    target: '0xNFT_PACKAGE::nft::mint',
-    arguments: [
-      tx.pure.string('My NFT'),
-      tx.pure.string('Description'),
-      tx.pure.string(metadataUrl), // Walrus metadata URL
-    ],
+  // Upload all at once
+  const results = await walrusClient.walrus.writeFiles({
+    files: walrusFiles,
+    epochs: 10,
+    deletable: false,
+    signer: currentAccount,
   });
 
-  const result = await client.signAndExecuteTransaction({
-    transaction: tx,
-    signer,
-    options: { showObjectChanges: true },
-  });
-
-  console.log('NFT minted:', result);
+  // Extract all blob IDs
+  return results.map((result) => result.info.blobId);
 }
 ```
 
-## Advanced Patterns
-
-### Batch Upload
+### Upload with Error Handling
 
 ```typescript
-async function batchUpload(files: File[]): Promise<string[]> {
-  const client = new WalrusClient({
-    publisherUrl: 'https://publisher.walrus-testnet.walrus.space',
-  });
+async function uploadWithErrorHandling(file: File, currentAccount: any) {
+  try {
+    // Validate file size (Walrus has limits)
+    const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+    if (file.size > MAX_SIZE) {
+      throw new Error('File too large. Max size: 100MB');
+    }
 
-  const uploadPromises = files.map(async (file) => {
-    const arrayBuffer = await file.arrayBuffer();
-    const data = new Uint8Array(arrayBuffer);
+    const walrusFile = WalrusFile.from({
+      contents: file,
+      identifier: file.name,
+      tags: { 'content-type': file.type },
+    });
 
-    const result = await client.store(data, { epochs: 5 });
-    return result.newlyCreated?.blobObject.blobId ||
-           result.alreadyCertified?.blobId ||
-           '';
-  });
+    const results = await walrusClient.walrus.writeFiles({
+      files: [walrusFile],
+      epochs: 5,
+      deletable: false,
+      signer: currentAccount,
+    });
 
-  return Promise.all(uploadPromises);
+    return {
+      success: true,
+      blobId: results[0].info.blobId,
+    };
+  } catch (error) {
+    console.error('Upload failed:', error);
+
+    // Handle specific error cases
+    if (error instanceof Error) {
+      if (error.message.includes('insufficient funds')) {
+        return { success: false, error: 'Insufficient SUI balance' };
+      }
+      if (error.message.includes('user rejected')) {
+        return { success: false, error: 'Transaction rejected by user' };
+      }
+    }
+
+    return { success: false, error: 'Upload failed. Please try again.' };
+  }
 }
 ```
 
-### Content-Addressed Storage
+## Reading Files (Modern API)
+
+### Basic File Retrieval
 
 ```typescript
-import { sha256 } from '@noble/hashes/sha256';
-import { bytesToHex } from '@noble/hashes/utils';
+async function readFile(blobId: string) {
+  // Get files by ID (array of IDs)
+  const [file] = await walrusClient.walrus.getFiles({
+    ids: [blobId],
+  });
 
-async function uploadWithContentHash(data: Uint8Array): Promise<{
-  blobId: string;
-  contentHash: string;
-}> {
-  // Calculate content hash
-  const hash = sha256(data);
-  const contentHash = bytesToHex(hash);
+  // Get raw bytes
+  const bytes = await file.bytes();
 
-  // Upload to Walrus
-  const result = await client.store(data, { epochs: 10 });
-  const blobId = result.newlyCreated?.blobObject.blobId ||
-                 result.alreadyCertified?.blobId ||
-                 '';
+  // IMPORTANT: Convert SharedArrayBuffer to standard Uint8Array
+  const standardBytes = new Uint8Array(bytes);
 
-  // Store mapping in your database or on-chain
-  return { blobId, contentHash };
+  return standardBytes;
+}
+```
+
+**Critical:** Walrus SDK returns `SharedArrayBuffer`-backed Uint8Array. Many browser APIs (like `Blob` constructor) require standard Uint8Array. Always convert with `new Uint8Array(bytes)`.
+
+### Read as Text
+
+```typescript
+async function readAsText(blobId: string): Promise<string> {
+  const [file] = await walrusClient.walrus.getFiles({ ids: [blobId] });
+  const bytes = await file.bytes();
+  const standardBytes = new Uint8Array(bytes);
+
+  const decoder = new TextDecoder();
+  return decoder.decode(standardBytes);
+}
+```
+
+### Read as JSON
+
+```typescript
+async function readAsJson<T = any>(blobId: string): Promise<T> {
+  const text = await readAsText(blobId);
+  return JSON.parse(text);
 }
 
-async function verifyContent(
+// Usage
+const metadata = await readAsJson<{
+  name: string;
+  description: string;
+  image: string;
+}>(metadataBlobId);
+```
+
+### Read as Blob (for display)
+
+```typescript
+async function readAsBlob(
   blobId: string,
-  expectedHash: string
-): Promise<boolean> {
-  const data = await client.read(blobId);
-  const hash = sha256(data);
-  const actualHash = bytesToHex(hash);
-  return actualHash === expectedHash;
+  contentType: string = 'application/octet-stream'
+): Promise<Blob> {
+  const [file] = await walrusClient.walrus.getFiles({ ids: [blobId] });
+  const bytes = await file.bytes();
+
+  // Convert to standard Uint8Array (REQUIRED for Blob)
+  const standardBytes = new Uint8Array(bytes);
+
+  return new Blob([standardBytes], { type: contentType });
 }
 ```
 
-### Caching Strategy
+### Get Direct HTTP URL
+
+For displaying images/videos without SDK:
 
 ```typescript
-class WalrusCache {
-  private cache = new Map<string, Uint8Array>();
-  private client: WalrusClient;
+function getWalrusUrl(blobId: string): string {
+  return `https://aggregator.walrus-testnet.walrus.space/v1/${blobId}`;
+}
 
-  constructor(client: WalrusClient) {
-    this.client = client;
-  }
+// Use in React component
+function DisplayImage({ blobId }: { blobId: string }) {
+  const url = getWalrusUrl(blobId);
+  return <img src={url} alt="Stored on Walrus" />;
+}
 
-  async read(blobId: string): Promise<Uint8Array> {
-    // Check cache first
-    if (this.cache.has(blobId)) {
-      return this.cache.get(blobId)!;
-    }
-
-    // Fetch from Walrus
-    const data = await this.client.read(blobId);
-
-    // Store in cache
-    this.cache.set(blobId, data);
-
-    return data;
-  }
-
-  clearCache(): void {
-    this.cache.clear();
-  }
+function DisplayVideo({ blobId }: { blobId: string }) {
+  const url = getWalrusUrl(blobId);
+  return <video src={url} controls />;
 }
 ```
 
-### Upload with Retry Logic
+### Read Multiple Files
 
 ```typescript
-async function uploadWithRetry(
-  data: Uint8Array,
-  maxRetries = 3
-): Promise<string> {
-  let lastError: Error | null = null;
+async function readMultipleFiles(blobIds: string[]) {
+  const files = await walrusClient.walrus.getFiles({
+    ids: blobIds,
+  });
 
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const result = await client.store(data, { epochs: 5 });
-      return result.newlyCreated?.blobObject.blobId ||
-             result.alreadyCertified?.blobId ||
-             '';
-    } catch (error) {
-      lastError = error as Error;
-      console.log(`Upload attempt ${i + 1} failed, retrying...`);
+  // Process all files
+  const results = await Promise.all(
+    files.map(async (file, index) => {
+      const bytes = await file.bytes();
+      const standardBytes = new Uint8Array(bytes);
+      return {
+        blobId: blobIds[index],
+        data: standardBytes,
+      };
+    })
+  );
 
-      // Exponential backoff
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
-    }
-  }
-
-  throw lastError || new Error('Upload failed after retries');
+  return results;
 }
 ```
 
-## React Integration
+## Complete Integration Examples
 
-### Upload Component
+### React Upload Component with Wallet
+
+Complete working example showing wallet integration, upload, error handling, and display:
 
 ```tsx
-import { WalrusClient } from '@mysten/walrus';
 import { useState } from 'react';
+import { useCurrentAccount } from '@mysten/dapp-kit';
+import { WalrusFile } from '@mysten/walrus';
+import { walrusClient } from './lib/walrusClient';
 
-function WalrusUploader() {
+export function WalrusUploadComponent() {
+  const currentAccount = useCurrentAccount();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [blobId, setBlobId] = useState<string>('');
+  const [error, setError] = useState<string>('');
 
-  const client = new WalrusClient({
-    publisherUrl: 'https://publisher.walrus-testnet.walrus.space',
-  });
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setError('');
+    }
+  };
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file) {
+      setError('Please select a file');
+      return;
+    }
+
+    if (!currentAccount) {
+      setError('Please connect your wallet first');
+      return;
+    }
 
     setUploading(true);
+    setError('');
+
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const data = new Uint8Array(arrayBuffer);
+      // Create WalrusFile
+      const walrusFile = WalrusFile.from({
+        contents: file,
+        identifier: file.name,
+        tags: {
+          'content-type': file.type,
+        },
+      });
 
-      const result = await client.store(data, { epochs: 5 });
-      const id = result.newlyCreated?.blobObject.blobId ||
-                 result.alreadyCertified?.blobId ||
-                 '';
+      // Upload with wallet signer
+      const results = await walrusClient.walrus.writeFiles({
+        files: [walrusFile],
+        epochs: 5,
+        deletable: false,
+        signer: currentAccount,
+      });
 
-      setBlobId(id);
-      alert('Upload successful!');
-    } catch (error) {
-      console.error('Upload failed:', error);
-      alert('Upload failed');
+      const uploadedBlobId = results[0].info.blobId;
+      setBlobId(uploadedBlobId);
+      console.log('Upload successful:', uploadedBlobId);
+    } catch (err) {
+      console.error('Upload error:', err);
+      setError(
+        err instanceof Error ? err.message : 'Upload failed. Please try again.'
+      );
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div>
-      <input
-        type="file"
-        onChange={(e) => setFile(e.target.files?.[0] || null)}
-      />
-      <button onClick={handleUpload} disabled={!file || uploading}>
+    <div className="space-y-4">
+      <div>
+        <input
+          type="file"
+          onChange={handleFileChange}
+          disabled={uploading}
+          className="block w-full text-sm"
+        />
+      </div>
+
+      {!currentAccount && (
+        <p className="text-amber-600">
+          Please connect your wallet to upload files
+        </p>
+      )}
+
+      <button
+        onClick={handleUpload}
+        disabled={!file || !currentAccount || uploading}
+        className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+      >
         {uploading ? 'Uploading...' : 'Upload to Walrus'}
       </button>
+
+      {error && (
+        <div className="p-3 bg-red-100 text-red-700 rounded">{error}</div>
+      )}
+
       {blobId && (
-        <div>
-          <p>Blob ID: {blobId}</p>
-          <img
-            src={`https://aggregator.walrus-testnet.walrus.space/v1/${blobId}`}
-            alt="Uploaded"
-          />
+        <div className="p-4 bg-green-100 rounded">
+          <p className="font-semibold">Upload Successful!</p>
+          <p className="text-sm break-all">Blob ID: {blobId}</p>
+
+          {file?.type.startsWith('image/') && (
+            <img
+              src={`https://aggregator.walrus-testnet.walrus.space/v1/${blobId}`}
+              alt="Uploaded"
+              className="mt-2 max-w-md"
+            />
+          )}
         </div>
       )}
     </div>
@@ -683,137 +665,380 @@ function WalrusUploader() {
 }
 ```
 
-### Next.js Server Action (App Router)
+See complete example in `/examples/WalrusUploadComponent.tsx`
 
-```typescript
-// app/actions/walrus.ts
-'use server';
+### NFT Minting with Walrus Storage
 
-import { WalrusClient } from '@mysten/walrus';
-
-export async function uploadToWalrus(formData: FormData) {
-  const file = formData.get('file') as File;
-
-  const client = new WalrusClient({
-    publisherUrl: 'https://publisher.walrus-testnet.walrus.space',
-  });
-
-  const arrayBuffer = await file.arrayBuffer();
-  const data = new Uint8Array(arrayBuffer);
-
-  const result = await client.store(data, { epochs: 5 });
-
-  return {
-    blobId: result.newlyCreated?.blobObject.blobId ||
-            result.alreadyCertified?.blobId,
-  };
-}
-
-// app/upload/page.tsx
-'use client';
-
-import { uploadToWalrus } from '../actions/walrus';
+```tsx
 import { useState } from 'react';
+import { useCurrentAccount, useSignAndExecuteTransaction } from '@mysten/dapp-kit';
+import { Transaction } from '@mysten/sui/transactions';
+import { WalrusFile } from '@mysten/walrus';
+import { walrusClient } from './lib/walrusClient';
 
-export default function UploadPage() {
-  const [result, setResult] = useState<string>('');
+export function NftMinter() {
+  const currentAccount = useCurrentAccount();
+  const { mutate: signAndExecute } = useSignAndExecuteTransaction();
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [image, setImage] = useState<File | null>(null);
+  const [minting, setMinting] = useState(false);
 
-  const handleSubmit = async (formData: FormData) => {
-    const { blobId } = await uploadToWalrus(formData);
-    setResult(blobId || '');
+  const handleMint = async () => {
+    if (!image || !currentAccount) return;
+
+    setMinting(true);
+    try {
+      // Step 1: Upload image to Walrus
+      const imageWalrusFile = WalrusFile.from({
+        contents: image,
+        identifier: image.name,
+        tags: { 'content-type': image.type },
+      });
+
+      const imageResults = await walrusClient.walrus.writeFiles({
+        files: [imageWalrusFile],
+        epochs: 365, // Store for ~1 year
+        deletable: false,
+        signer: currentAccount,
+      });
+
+      const imageBlobId = imageResults[0].info.blobId;
+
+      // Step 2: Create and upload metadata
+      const metadata = {
+        name,
+        description,
+        image: `walrus://${imageBlobId}`,
+      };
+
+      const metadataBlob = new Blob([JSON.stringify(metadata, null, 2)], {
+        type: 'application/json',
+      });
+
+      const metadataWalrusFile = WalrusFile.from({
+        contents: metadataBlob,
+        identifier: 'metadata.json',
+        tags: { 'content-type': 'application/json' },
+      });
+
+      const metadataResults = await walrusClient.walrus.writeFiles({
+        files: [metadataWalrusFile],
+        epochs: 365,
+        deletable: false,
+        signer: currentAccount,
+      });
+
+      const metadataBlobId = metadataResults[0].info.blobId;
+
+      // Step 3: Mint NFT with Walrus metadata URL
+      const tx = new Transaction();
+      tx.moveCall({
+        target: `${YOUR_PACKAGE_ID}::nft::mint`,
+        arguments: [
+          tx.pure.string(name),
+          tx.pure.string(description),
+          tx.pure.string(`walrus://${metadataBlobId}`),
+        ],
+      });
+
+      signAndExecute(
+        {
+          transaction: tx,
+        },
+        {
+          onSuccess: (result) => {
+            console.log('NFT minted:', result);
+            alert('NFT minted successfully!');
+          },
+          onError: (error) => {
+            console.error('Minting failed:', error);
+            alert('Minting failed. Please try again.');
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to upload to Walrus');
+    } finally {
+      setMinting(false);
+    }
   };
 
   return (
-    <form action={handleSubmit}>
-      <input type="file" name="file" required />
-      <button type="submit">Upload</button>
-      {result && <p>Blob ID: {result}</p>}
-    </form>
+    <div className="space-y-4">
+      <input
+        type="text"
+        placeholder="NFT Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="block w-full p-2 border rounded"
+      />
+      <textarea
+        placeholder="Description"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        className="block w-full p-2 border rounded"
+      />
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => setImage(e.target.files?.[0] || null)}
+        className="block w-full"
+      />
+      <button
+        onClick={handleMint}
+        disabled={!name || !image || !currentAccount || minting}
+        className="px-6 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+      >
+        {minting ? 'Minting...' : 'Mint NFT'}
+      </button>
+    </div>
   );
 }
 ```
 
+## Storage Management
+
+### Understanding Epochs
+
+Walrus storage is paid per epoch (time period):
+- **Testnet epoch:** ≈1 day
+- **Mainnet epoch:** TBD (likely longer)
+- **Minimum storage:** 1 epoch
+- **Maximum storage:** ~5000 epochs
+
+```typescript
+// Store for different durations
+await walrusClient.walrus.writeFiles({
+  files: [walrusFile],
+  epochs: 5,    // ~5 days on testnet
+  // epochs: 30,   // ~30 days
+  // epochs: 365,  // ~1 year
+  deletable: false,
+  signer: currentAccount,
+});
+```
+
+### Deletable Blobs
+
+If you want the ability to delete blobs before expiration:
+
+```typescript
+const results = await walrusClient.walrus.writeFiles({
+  files: [walrusFile],
+  epochs: 10,
+  deletable: true, // Allow deletion
+  signer: currentAccount,
+});
+
+// Later, to delete
+await walrusClient.walrus.deleteFiles({
+  ids: [blobId],
+  signer: currentAccount,
+});
+```
+
 ## Best Practices
 
-**Upload considerations:**
-- Compress large files before uploading
-- Use appropriate epoch counts (longer = more expensive)
-- Handle upload failures gracefully
-- Validate file types and sizes
+### Upload Considerations
 
-**Retrieval optimization:**
-- Cache frequently accessed blobs
-- Use CDN for hot content
-- Pre-fetch critical resources
-- Implement lazy loading for media
+- **Validate before upload:** Check file size, type, and content
+- **Compress when possible:** Reduce storage costs with image/video compression
+- **Choose appropriate epochs:** Balance cost vs availability needs
+- **Handle failures gracefully:** Network issues, insufficient funds, user rejection
+- **Show progress:** Keep users informed during uploads
 
-**Cost management:**
-- Choose epoch counts based on data lifecycle
-- Archive old content to shorter epochs
-- Use content deduplication
-- Monitor storage usage
+### Security
 
-**Security:**
-- Validate uploaded content
-- Implement access controls if needed
-- Don't store sensitive data unencrypted
-- Use Seal for decentralized secrets management and access-controlled storage
+- **Don't store sensitive data unencrypted:** Walrus blobs are publicly accessible
+- **Validate user uploads:** Prevent malicious content
+- **Implement access controls:** Use Seal for decentralized secrets and access-controlled storage
+- **Content moderation:** For user-generated content platforms
+
+### Performance
+
+- **Cache frequently accessed blobs:** Store in browser cache or CDN
+- **Use direct HTTP URLs:** For public display (images, videos)
+- **Lazy load media:** Don't load all blobs at once
+- **Batch uploads:** Upload multiple files simultaneously when possible
+
+### Cost Management
+
+- **Right-size epochs:** Don't over-provision storage time
+- **Deduplicate content:** Walrus handles duplicate blobs efficiently
+- **Monitor usage:** Track storage costs per user/feature
+- **Archive old content:** Consider shorter epochs for historical data
 
 ## Troubleshooting
 
-**Next.js WASM errors:**
-- Use server-side API routes
-- Switch to Vite for client-side uploads
-- Use HTTP relay pattern instead of SDK
+### WASM Loading Errors
 
-**Upload failures:**
-- Check network connectivity
-- Verify publisher URL is accessible
-- Ensure sufficient gas for on-chain operations
-- Try increasing timeout values
+**Error:** `WebAssembly.instantiate(): expected magic word 00 61 73 6d, found 3c 21 64 6f`
 
-**Retrieval issues:**
-- Verify blob ID is correct
-- Check epoch hasn't expired
-- Try different aggregator endpoints
-- Confirm blob was successfully stored
+**Cause:** Vite is pre-bundling WASM modules.
+
+**Solution:** Add to `vite.config.ts`:
+```typescript
+optimizeDeps: {
+  exclude: ['@mysten/walrus-wasm'],
+}
+```
+
+### Type Error with Blob Constructor
+
+**Error:** `Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'BlobPart'`
+
+**Cause:** Walrus returns SharedArrayBuffer-backed Uint8Array.
+
+**Solution:** Convert to standard Uint8Array:
+```typescript
+const bytes = await file.bytes();
+const standardBytes = new Uint8Array(bytes); // This copies to standard array
+const blob = new Blob([standardBytes], { type: 'image/png' });
+```
+
+### Wallet Shows Wrong Network
+
+**Issue:** Wallet shows "localnet" but you're using testnet.
+
+**Cause:** `SuiClientProvider` network not configured properly.
+
+**Solution:** Ensure both `network` and `url` are set:
+```typescript
+const networks = {
+  testnet: new SuiJsonRpcClient({
+    network: 'testnet', // Required
+    url: 'https://fullnode.testnet.sui.io:443', // Required
+  }),
+};
+```
+
+### "No Wallet Connected" Errors
+
+**Cause:** Trying to upload without wallet signer.
+
+**Solution:** Check wallet connection before upload:
+```typescript
+const currentAccount = useCurrentAccount();
+if (!currentAccount) {
+  alert('Please connect your wallet');
+  return;
+}
+```
+
+### Upload Fails Silently
+
+**Possible causes:**
+- Insufficient SUI balance for gas
+- Network connectivity issues
+- File too large (>100MB limit)
+- Wrong network configuration
+
+**Solution:** Add comprehensive error handling:
+```typescript
+try {
+  const results = await walrusClient.walrus.writeFiles({...});
+} catch (error) {
+  console.error('Upload error:', error);
+  // Check error message for specific issues
+}
+```
+
+### Client Type Confusion
+
+**Error:** `Type 'SuiGrpcClient' is not assignable to type...`
+
+**Cause:** Using wrong client type for the context.
+
+**Solution:**
+- Use `SuiJsonRpcClient` for dApp Kit (`SuiClientProvider`)
+- Use `SuiGrpcClient` for Walrus operations
+- See "Client Setup: Two Clients Required" section
 
 ## Quick Reference
 
 ### Essential Imports
 
 ```typescript
-import { WalrusClient } from '@mysten/walrus';
+// Core Walrus
+import { walrus, WalrusFile } from '@mysten/walrus';
+import { SuiGrpcClient } from '@mysten/sui/grpc';
+
+// dApp Kit integration
+import { useCurrentAccount } from '@mysten/dapp-kit';
+import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
 ```
 
 ### Client Setup
 
 ```typescript
-const client = new WalrusClient({
-  publisherUrl: 'https://publisher.walrus-testnet.walrus.space',
-  aggregatorUrl: 'https://aggregator.walrus-testnet.walrus.space',
-});
+// For Walrus operations
+const walrusClient = new SuiGrpcClient({
+  network: 'testnet',
+  baseUrl: 'https://grpc.testnet.sui.io:443',
+}).$extend(
+  walrus({
+    uploadRelay: {
+      host: 'https://upload-relay.testnet.walrus.space',
+    },
+  })
+);
 ```
 
 ### Upload Pattern
 
 ```typescript
-const result = await client.store(data, { epochs: 5 });
-const blobId = result.newlyCreated?.blobObject.blobId;
+// Create file
+const walrusFile = WalrusFile.from({
+  contents: file,
+  identifier: file.name,
+  tags: { 'content-type': file.type },
+});
+
+// Upload
+const results = await walrusClient.walrus.writeFiles({
+  files: [walrusFile],
+  epochs: 5,
+  deletable: false,
+  signer: currentAccount, // From useCurrentAccount()
+});
+
+const blobId = results[0].info.blobId;
 ```
 
-### Retrieve Pattern
+### Read Pattern
 
 ```typescript
-const data = await client.read(blobId);
+// Get file
+const [file] = await walrusClient.walrus.getFiles({ ids: [blobId] });
+const bytes = await file.bytes();
+const standardBytes = new Uint8Array(bytes); // Important!
+
+// Or use HTTP URL
 const url = `https://aggregator.walrus-testnet.walrus.space/v1/${blobId}`;
 ```
 
-### Testnet Endpoints
+### Network Endpoints
 
-- **Publisher:** https://publisher.walrus-testnet.walrus.space
-- **Aggregator:** https://aggregator.walrus-testnet.walrus.space
+**Testnet:**
+- Upload Relay: `https://upload-relay.testnet.walrus.space`
+- Aggregator: `https://aggregator.walrus-testnet.walrus.space`
+- Sui gRPC: `https://grpc.testnet.sui.io:443`
+- Sui RPC: `https://fullnode.testnet.sui.io:443`
+
+**Mainnet (when available):**
+- Upload Relay: `https://upload-relay.walrus.space`
+- Aggregator: `https://aggregator.walrus.space`
 
 ---
 
-For comprehensive documentation and advanced use cases, visit https://docs.wal.app/ and https://sdk.mystenlabs.com/walrus
+## Additional Resources
+
+- **Official Docs:** https://docs.wal.app/
+- **SDK Reference:** https://sdk.mystenlabs.com/walrus
+- **Example Project:** https://github.com/0x-j/hello-sui-stack
+- **Seal (Access Control):** For private/encrypted storage
+- **Community Discord:** https://discord.gg/sui
+
+For complete working examples, see the `/examples` directory in this skill.

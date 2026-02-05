@@ -145,6 +145,107 @@ Provide additional context based on template:
 - Shows complete flow from contract to frontend
 - Good for learning
 
+### Step 7: Detect and Configure Walrus (If Applicable)
+
+After project creation, detect if the user plans to use Walrus storage by checking for these keywords in the conversation:
+- "Walrus"
+- "decentralized storage"
+- "blob storage"
+- "upload to Walrus"
+- "store files"
+- "NFT storage"
+
+**If Walrus usage is detected:**
+
+1. **Check template compatibility:**
+   - ✅ **Recommended:** react-client-dapp, vue-client-dapp (Vite handles WASM correctly)
+   - ⚠️ **Not recommended:** next-client-dapp (WASM compatibility issues)
+   - ✅ **Alternative:** next-server-dapp (server-side only, use publisher pattern)
+
+2. **If using incompatible template (Next.js client):**
+   ```
+   ⚠️ Note: You selected Next.js client template, but Walrus SDK has WASM
+   compatibility issues with Next.js client-side rendering.
+
+   Options:
+   1. Switch to react-client-dapp (recommended for Walrus)
+   2. Use next-server-dapp with server actions (Walrus publisher pattern)
+   3. Continue but use Walrus only in API routes/server actions
+   ```
+
+3. **For Vite-based templates (recommended):**
+   ```bash
+   cd [PROJECT_NAME]
+
+   # Install Walrus packages
+   npm install @mysten/walrus @mysten/walrus-wasm
+   ```
+
+4. **Add Vite WASM configuration:**
+
+   Update `vite.config.ts` to include:
+   ```typescript
+   import { defineConfig } from 'vite';
+   import react from '@vitejs/plugin-react';
+
+   export default defineConfig({
+     plugins: [react()],
+     build: {
+       target: 'esnext',
+     },
+     optimizeDeps: {
+       exclude: ['@mysten/walrus-wasm'], // CRITICAL for Walrus
+       esbuildOptions: {
+         target: 'esnext',
+       },
+     },
+     worker: {
+       format: 'es',
+     },
+   });
+   ```
+
+5. **Provide Walrus setup guidance:**
+   ```
+   Walrus configuration added! Next steps:
+
+   1. See the Walrus Storage skill for complete integration guide
+   2. Copy example files from skills/walrus-storage/examples/
+   3. Key files to create:
+      - src/lib/walrusClient.ts (client setup)
+      - src/lib/typeUtils.ts (WASM type conversion)
+
+   4. Integration pattern:
+      - Upload: Use upload relay (users pay for storage)
+      - Client: SuiGrpcClient with walrus() extension
+      - Signer: Get from useCurrentAccount() hook
+
+   Use '/walrus-storage' skill for detailed documentation and examples.
+   ```
+
+6. **Template recommendations summary:**
+   ```
+   Template Choice Guide for Walrus:
+
+   ✅ BEST: react-client-dapp
+      - Vite handles WASM correctly
+      - Upload relay works perfectly
+      - Client-side wallet integration
+
+   ⚠️ AVOID: next-client-dapp
+      - WASM issues with Next.js client
+      - Use only if Walrus in API routes
+
+   ✅ OK: next-server-dapp
+      - Server-side only
+      - Use publisher pattern (not upload relay)
+      - Good for backend-controlled storage
+   ```
+
+**If no Walrus keywords detected:**
+- Skip this step
+- User can add Walrus later if needed
+
 ## Examples
 
 ### Basic Usage

@@ -63,14 +63,25 @@ Wrap application with required providers:
 
 ```tsx
 import { SuiClientProvider, WalletProvider } from '@mysten/dapp-kit';
-import { getFullnodeUrl } from '@mysten/sui/client';
+import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
+
+// Network configuration with BOTH required parameters
 const networks = {
-  testnet: { url: getFullnodeUrl('testnet') },
-  mainnet: { url: getFullnodeUrl('mainnet') },
-  devnet: { url: getFullnodeUrl('devnet') },
+  testnet: new SuiJsonRpcClient({
+    network: 'testnet', // REQUIRED: Network identifier
+    url: 'https://fullnode.testnet.sui.io:443', // REQUIRED: RPC endpoint
+  }),
+  mainnet: new SuiJsonRpcClient({
+    network: 'mainnet',
+    url: 'https://fullnode.mainnet.sui.io:443',
+  }),
+  devnet: new SuiJsonRpcClient({
+    network: 'devnet',
+    url: 'https://fullnode.devnet.sui.io:443',
+  }),
 };
 
 function App() {
@@ -86,6 +97,12 @@ function App() {
 }
 ```
 
+**Important: Network Configuration**
+- Both `network` and `url` parameters are **REQUIRED** in `SuiJsonRpcClient`
+- Omitting `network` will cause wallet to show "localnet" instead of correct network
+- Omitting `url` will cause connection errors
+- Use `SuiJsonRpcClient` (JSON-RPC) for dApp Kit providers, NOT `SuiGrpcClient`
+
 **Provider hierarchy:**
 1. `QueryClientProvider` - React Query for data fetching
 2. `SuiClientProvider` - Sui network configuration
@@ -95,6 +112,12 @@ function App() {
 - `autoConnect` - Auto-reconnect on page load (default: false)
 - `storageKey` - LocalStorage key for persistence (default: 'sui_wallet')
 - `storage` - Custom storage implementation (default: localStorage)
+
+**Client Type Note:**
+- **SuiJsonRpcClient** - For dApp Kit providers (uses JSON-RPC protocol)
+- **SuiGrpcClient** - For Walrus operations only (uses gRPC protocol)
+- These clients use different constructor parameters: `url` vs `baseUrl`
+- Do NOT use `SuiGrpcClient` with `SuiClientProvider` - it will cause type errors
 
 ### Import Styles
 
