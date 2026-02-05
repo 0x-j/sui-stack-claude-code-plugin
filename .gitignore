@@ -1,0 +1,27 @@
+# Claude Code local settings
+.claude/*.local.md
+
+# Node modules (if adding utility scripts)
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+.cache/
