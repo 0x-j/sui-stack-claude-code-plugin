@@ -1,7 +1,7 @@
 {
   "name": "sui-stack-dev",
   "version": "0.1.0",
-  "description": "Comprehensive development toolkit for building on the Sui blockchain stack, covering Move contracts, TypeScript SDK, wallet integration, Walrus storage, and Seal encryption",
+  "description": "Comprehensive development toolkit for building on the Sui blockchain stack, covering Move contracts, TypeScript SDK, wallet integration, Walrus storage, and Seal secrets management",
   "author": {
     "name": "J",
     "organization": "0x-j"

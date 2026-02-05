@@ -1,27 +1,36 @@
 ---
-name: Seal Encryption
-description: This skill should be used when the user asks about "Seal encryption", "encrypt for Walrus", "decrypt Seal data", "@mysten/seal", "encrypted storage", "private data on Walrus", or mentions encryption for Sui and Walrus. Provides comprehensive guidance for using Seal to encrypt and decrypt data stored on Walrus.
+name: Seal Secrets Management
+description: This skill should be used when the user asks about "Seal", "secrets management", "decentralized secrets", "encrypt for Walrus", "decrypt Seal data", "@mysten/seal", "access control on Sui", "private data", "encrypted storage", or mentions Seal DSM. Provides comprehensive guidance for using Seal to manage secrets with Sui-based access control policies.
 version: 0.1.0
 ---
 
-# Seal Encryption
+# Seal Secrets Management
 
-Provides expert guidance for using Seal, an encryption library designed for encrypting data stored on Walrus. Seal enables private, encrypted blob storage while maintaining the benefits of decentralized storage.
+Provides expert guidance for using Seal, a decentralized secrets management (DSM) service that relies on access control policies defined and validated on Sui. Application developers and users can use Seal to secure sensitive data at rest on decentralized storage like Walrus, or on any other onchain/offchain storage.
 
 ## Overview
 
-Seal is an encryption SDK that works seamlessly with Walrus to provide encrypted blob storage. It uses modern cryptographic primitives to ensure data confidentiality while allowing authorized parties to decrypt and access the content.
+Seal is a decentralized secrets management service that combines Sui blockchain's access control capabilities with encryption to protect sensitive data across any storage medium. Unlike traditional encryption libraries, Seal provides policy-based access management enforced by smart contracts on Sui.
 
 **Key features:**
-- **Encryption for Walrus** - Designed specifically for blob storage
+- **Sui-based access control** - Define and validate access policies on Sui blockchain
+- **Storage agnostic** - Works with Walrus, IPFS, S3, onchain, or any storage
+- **Policy enforcement** - Smart contract-enforced access rules
 - **Multiple encryption modes** - Symmetric and asymmetric encryption
-- **Key management** - Flexible key handling patterns
+- **Decentralized key management** - Distributed key handling without central authority
 - **Streaming support** - Encrypt large files efficiently
 - **Browser compatible** - Works in web applications
 
+**Use cases:**
+- Secure sensitive data on Walrus or other decentralized storage
+- Encrypted onchain data with offchain access control
+- Private NFT metadata and assets
+- Confidential document sharing with policy-based access
+- Multi-party data access with Sui smart contract governance
+
 **Official documentation:** https://seal-docs.wal.app/ and https://sdk.mystenlabs.com/seal
 
-**Note:** Key management best practices are still being finalized. This guide covers current patterns and recommendations.
+**Note:** Seal is a DSM service, not just an encryption library. Access policies are defined on Sui, providing decentralized, trustless access management.
 
 ## Installation
 

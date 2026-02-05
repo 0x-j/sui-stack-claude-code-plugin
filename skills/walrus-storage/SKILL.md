@@ -757,7 +757,7 @@ export default function UploadPage() {
 - Validate uploaded content
 - Implement access controls if needed
 - Don't store sensitive data unencrypted
-- Use Seal SDK for encrypted storage
+- Use Seal for decentralized secrets management and access-controlled storage
 
 ## Troubleshooting
 

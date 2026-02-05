@@ -46,12 +46,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Important**: Next.js client-side WASM compatibility warning
   - NFT integration patterns
 
-- **seal-encryption** - Encryption for Walrus storage
-  - Symmetric encryption basics
-  - Key generation and derivation
-  - Encrypt/decrypt with Walrus
-  - Multi-user access patterns
-  - Private NFT examples
+- **seal-encryption** - Decentralized secrets management with Sui-based access control
+  - Sui-based access control policies
+  - Storage agnostic (Walrus, IPFS, onchain, offchain)
+  - Symmetric and asymmetric encryption
+  - Policy-based access management
+  - Decentralized key management patterns
+  - Private NFT and confidential data sharing examples
 
 #### Commands (3 total)
 - **init-dapp** - Initialize new Sui dApp project

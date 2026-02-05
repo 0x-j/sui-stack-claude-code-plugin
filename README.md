@@ -13,7 +13,7 @@ Six comprehensive skills covering the complete Sui development stack:
 - **Sui TypeScript SDK** - Transaction building and chain interaction
 - **Sui Wallet Integration** - dApp Kit and wallet connection patterns
 - **Walrus Storage** - Decentralized storage layer usage
-- **Seal Encryption** - Data encryption for Walrus
+- **Seal Secrets Management** - Decentralized secrets management with Sui-based access control
 
 ### 🔧 Commands
 
@@ -110,7 +110,7 @@ You: "Connect wallet in my React app"
 You: "Upload files to Walrus"
 → walrus-storage loads
 
-You: "Encrypt data with Seal"
+You: "Manage secrets with Seal"
 → seal-encryption loads
 ```
 
@@ -188,7 +188,7 @@ Each skill is self-contained and can be used independently:
 | `sui-typescript-sdk` | TypeScript SDK usage | None |
 | `sui-wallet-integration` | Wallet connection, dApp Kit | References TypeScript SDK |
 | `walrus-storage` | Walrus blob storage | May reference SDK |
-| `seal-encryption` | Seal encryption | May reference Walrus |
+| `seal-encryption` | Decentralized secrets management | Works with any storage |
 
 **Note:** Some skills cross-reference each other for comprehensive guidance. Using the full plugin ensures all references work correctly.
 
@@ -370,9 +370,11 @@ Claude:
 - **Next.js**: Avoid Walrus SDK on client-side due to WASM issues
 - Use Vite for client-side upload relay implementations
 
-### Seal Encryption
-- Always encrypt sensitive data before Walrus upload
-- Key management best practices (documentation in progress)
+### Seal Secrets Management
+- Use Seal for decentralized secrets management with Sui-based access control
+- Secure sensitive data on Walrus, onchain, or any offchain storage
+- Define and validate access policies on Sui
+- Key management and policy enforcement best practices
 
 ## Roadmap & Future Features
 
