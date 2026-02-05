@@ -374,6 +374,155 @@ Claude:
 - Always encrypt sensitive data before Walrus upload
 - Key management best practices (documentation in progress)
 
+## Roadmap & Future Features
+
+This plugin is actively evolving with the Sui ecosystem. Planned features and enhancements:
+
+### 🔄 Coming Soon (v0.2.0)
+
+#### DeepBook Integration
+**Sui's native liquidity layer and DEX protocol**
+
+- **Skill**: `deepbook-integration`
+  - Pool creation and management
+  - Market making strategies
+  - Order placement and execution
+  - Price feed integration
+  - Liquidity provision patterns
+
+- **Commands**:
+  - `/sui-stack-dev:create-pool` - Create DeepBook trading pool
+  - `/sui-stack-dev:place-order` - Place limit/market orders
+  - `/sui-stack-dev:manage-liquidity` - Add/remove liquidity
+
+- **Resources**:
+  - DeepBook SDK examples
+  - Market maker bot templates
+  - Price oracle integration patterns
+
+#### Nautilus Wallet Support
+**Enhanced wallet integration and testing**
+
+- **Skill**: `nautilus-wallet`
+  - Nautilus-specific features
+  - Wallet testing patterns
+  - Multi-wallet coordination
+
+- **Agent**: `wallet-testing-helper`
+  - Automated wallet connection testing
+  - Multi-wallet compatibility checks
+  - Transaction simulation
+
+#### Custom Indexer Development
+**Build custom blockchain data indexers**
+
+- **Skill**: `sui-indexer-development`
+  - Event indexing patterns
+  - Custom RPC node setup
+  - Database schema design
+  - GraphQL API integration
+  - Real-time event streaming
+
+- **Commands**:
+  - `/sui-stack-dev:init-indexer` - Scaffold indexer project
+  - `/sui-stack-dev:deploy-indexer` - Deploy indexer service
+
+- **Agent**: `indexer-optimizer`
+  - Query optimization suggestions
+  - Indexing strategy recommendations
+  - Performance analysis
+
+### 🚀 Planned (v0.3.0+)
+
+#### Advanced Move Patterns
+- **Dynamic fields and objects** - Advanced storage patterns
+- **Programmable transaction blocks** - Complex PTB composition
+- **Kiosk standard** - NFT marketplace primitives
+- **Closed-loop tokens** - Custom token standards
+
+#### DeFi Primitives
+- **Staking mechanisms** - Validator and liquid staking
+- **Lending protocols** - Collateralized lending patterns
+- **AMM patterns** - Automated market maker implementations
+- **Oracle integration** - Price feed and data oracle usage
+
+#### Developer Tools
+- **Gas profiler agent** - Deep gas usage analysis
+- **Contract upgrader** - Safe upgrade patterns and migration
+- **Test generator agent** - Automated test generation from Move code
+- **Documentation generator** - Auto-generate docs from Move contracts
+
+#### Infrastructure
+- **Local node setup** - Run local Sui network
+- **Faucet integration** - Automated testnet token requests
+- **Multi-sig tools** - Multi-signature wallet management
+- **Snapshot and forking** - Mainnet state forking for testing
+
+#### Frontend Enhancements
+- **React Native** - Mobile dApp development
+- **Vue/Svelte** - Additional framework support
+- **UI component library** - Pre-built dApp components
+- **Transaction debugging** - Better error messages and debugging
+
+#### Storage & Data
+- **IPFS integration** - Hybrid Walrus + IPFS storage
+- **Arweave support** - Permanent storage options
+- **Data streaming** - Real-time data sync patterns
+- **Off-chain data** - Best practices for off-chain storage
+
+### 📋 Community Requested
+
+Want a feature added? Open an issue or submit a PR!
+
+**Top community requests:**
+- zkLogin integration patterns
+- Sui Name Service (SuiNS) integration
+- Cross-chain bridge patterns
+- Gas optimization calculator
+- Smart contract templates library
+- CI/CD integration examples
+
+### 🤝 Contributing to Roadmap
+
+We welcome contributions and suggestions:
+
+1. **Feature Requests**: Open an issue with the `enhancement` label
+2. **Skill Contributions**: Submit PR with new skills following plugin-dev patterns
+3. **Documentation**: Improve existing skills with more examples
+4. **Bug Reports**: Report issues or outdated information
+
+**Priority areas for contributions:**
+- DeepBook trading strategies and examples
+- Custom indexer implementation guides
+- Advanced Move patterns and best practices
+- Production deployment guides
+- Security audit checklists
+
+### 📅 Release Schedule
+
+- **v0.1.x** (Current) - Core Sui stack coverage, bug fixes
+- **v0.2.0** (Q2 2026) - DeepBook, Nautilus, Custom Indexers
+- **v0.3.0** (Q3 2026) - Advanced patterns, DeFi primitives
+- **v0.4.0** (Q4 2026) - Developer tools, infrastructure
+- **v1.0.0** (2027) - Complete Sui ecosystem coverage, stable API
+
+### 💡 Experimental Features
+
+Features being explored (may or may not be added):
+
+- **AI agent for Move** - AI-powered Move code generation
+- **Visual PTB builder** - GUI for building programmable transactions
+- **Gas predictor** - ML-based gas cost prediction
+- **Smart contract fuzzer** - Automated vulnerability testing
+- **Performance benchmarking** - Automated performance testing suite
+
+### 🔍 Stay Updated
+
+- **GitHub Releases**: https://github.com/0x-j/sui-stack-claude-code-plugin/releases
+- **Changelog**: See CHANGELOG.md for detailed version history
+- **Discussions**: https://github.com/0x-j/sui-stack-claude-code-plugin/discussions
+- **Issues**: https://github.com/0x-j/sui-stack-claude-code-plugin/issues
+
 ## Troubleshooting
 
 ### Plugin Not Loading
