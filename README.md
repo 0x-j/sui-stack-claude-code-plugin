@@ -118,113 +118,6 @@ You: "Manage secrets with Seal"
 
 Multiple skills can load if your question spans multiple areas.
 
-## Using Individual Skills
-
-### Option 1: Use Full Plugin (Recommended)
-
-Install the complete plugin - lazy-loading ensures minimal context usage:
-
-```bash
-# Install once, use what you need
-cc --plugin-dir /path/to/sui-stack-claude-code-plugin
-```
-
-**Advantages:**
-
-- ✅ Automatic updates
-- ✅ Skills work together seamlessly
-- ✅ All features available when needed
-- ✅ Minimal memory impact (lazy-loading)
-
-### Option 2: Extract Individual Skills
-
-For advanced users who want only specific skills, you can manually extract them:
-
-#### Step 1: Create Minimal Plugin Structure
-
-```bash
-# Create your custom plugin directory
-mkdir -p my-sui-plugin/.claude-plugin
-mkdir -p my-sui-plugin/skills
-```
-
-#### Step 2: Copy Desired Skills
-
-```bash
-# Copy only the skills you want
-cp -r sui-stack-claude-code-plugin/skills/sui-move-development \
-     my-sui-plugin/skills/
-
-cp -r sui-stack-claude-code-plugin/skills/sui-cli-usage \
-     my-sui-plugin/skills/
-```
-
-#### Step 3: Create Minimal Manifest
-
-Create `my-sui-plugin/.claude-plugin/plugin.json`:
-
-```json
-{
-  "name": "my-sui-plugin",
-  "version": "0.1.0",
-  "description": "Custom Sui plugin with selected skills",
-  "author": {
-    "name": "Your Name"
-  }
-}
-```
-
-#### Step 4: Use Your Custom Plugin
-
-```bash
-cc --plugin-dir /path/to/my-sui-plugin
-```
-
-### Available Skills for Extraction
-
-Each skill is self-contained and can be used independently:
-
-| Skill Directory          | Purpose                           | Dependencies              |
-| ------------------------ | --------------------------------- | ------------------------- |
-| `sui-move-development`   | Move contracts, testing, patterns | None                      |
-| `sui-cli-usage`          | CLI commands and workflows        | None                      |
-| `sui-typescript-sdk`     | TypeScript SDK usage              | None                      |
-| `sui-wallet-integration` | Wallet connection, dApp Kit       | References TypeScript SDK |
-| `walrus-storage`         | Walrus blob storage               | May reference SDK         |
-| `seal-encryption`        | Decentralized secrets management  | Works with any storage    |
-
-**Note:** Some skills cross-reference each other for comprehensive guidance. Using the full plugin ensures all references work correctly.
-
-### Skill Combinations
-
-Common combinations for different developer needs:
-
-**Backend/Smart Contract Developer:**
-
-```bash
-# Just Move development
-cp -r skills/sui-move-development my-plugin/skills/
-cp -r skills/sui-cli-usage my-plugin/skills/
-```
-
-**Frontend Developer:**
-
-```bash
-# Just frontend integration
-cp -r skills/sui-typescript-sdk my-plugin/skills/
-cp -r skills/sui-wallet-integration my-plugin/skills/
-```
-
-**Full Stack with Storage:**
-
-```bash
-# Everything except encryption
-cp -r skills/sui-move-development my-plugin/skills/
-cp -r skills/sui-typescript-sdk my-plugin/skills/
-cp -r skills/sui-wallet-integration my-plugin/skills/
-cp -r skills/walrus-storage my-plugin/skills/
-```
-
 ## Configuration
 
 Create `.claude/sui-stack-dev.local.md` in your project for custom settings:
@@ -432,16 +325,6 @@ Ensure plugin is enabled in Claude Code settings:
 cc plugins list
 cc plugins enable sui-stack-dev
 ```
-
-## Contributing
-
-This plugin evolves with the Sui stack. Contributions welcome:
-
-1. Fork the repository
-2. Create a feature branch
-3. Add/update skills, commands, or agents
-4. Test thoroughly
-5. Submit pull request
 
 ## Version History
 
