@@ -69,12 +69,14 @@ cp -r sui-stack-claude-code-plugin your-project/.claude-plugin/
 This plugin is designed to be **context-efficient** through lazy-loading:
 
 **Always in Context (Minimal):**
+
 - Plugin metadata (~100 words)
 - Skill descriptions only (~600 words for all 6 skills)
 - Command names and descriptions
 - Agent trigger patterns
 
 **Loaded On-Demand (When Needed):**
+
 - Full skill content (~2,000 words each)
 - Command instructions
 - Agent system prompts
@@ -83,13 +85,13 @@ This plugin is designed to be **context-efficient** through lazy-loading:
 
 Even though this plugin contains 6 comprehensive skills, **only relevant content loads into context**:
 
-| Scenario | Context Used | Example |
-|----------|--------------|---------|
-| No Sui questions asked | ~700 words | Plugin metadata + descriptions |
+| Scenario                 | Context Used | Example                               |
+| ------------------------ | ------------ | ------------------------------------- |
+| No Sui questions asked   | ~700 words   | Plugin metadata + descriptions        |
 | Ask about Move contracts | ~2,700 words | Metadata + sui-move-development skill |
-| Ask about CLI + Wallet | ~4,700 words | Metadata + 2 skills |
-| Use a command | ~1,500 words | Command instructions only |
-| Agent triggered | ~2,000 words | Agent system prompt only |
+| Ask about CLI + Wallet   | ~4,700 words | Metadata + 2 skills                   |
+| Use a command            | ~1,500 words | Command instructions only             |
+| Agent triggered          | ~2,000 words | Agent system prompt only              |
 
 **Bottom line:** Installing the full plugin doesn't mean everything loads at once. Claude intelligently loads only what's relevant to your current question.
 
@@ -128,6 +130,7 @@ cc --plugin-dir /path/to/sui-stack-claude-code-plugin
 ```
 
 **Advantages:**
+
 - ✅ Automatic updates
 - ✅ Skills work together seamlessly
 - ✅ All features available when needed
@@ -181,14 +184,14 @@ cc --plugin-dir /path/to/my-sui-plugin
 
 Each skill is self-contained and can be used independently:
 
-| Skill Directory | Purpose | Dependencies |
-|----------------|---------|--------------|
-| `sui-move-development` | Move contracts, testing, patterns | None |
-| `sui-cli-usage` | CLI commands and workflows | None |
-| `sui-typescript-sdk` | TypeScript SDK usage | None |
-| `sui-wallet-integration` | Wallet connection, dApp Kit | References TypeScript SDK |
-| `walrus-storage` | Walrus blob storage | May reference SDK |
-| `seal-encryption` | Decentralized secrets management | Works with any storage |
+| Skill Directory          | Purpose                           | Dependencies              |
+| ------------------------ | --------------------------------- | ------------------------- |
+| `sui-move-development`   | Move contracts, testing, patterns | None                      |
+| `sui-cli-usage`          | CLI commands and workflows        | None                      |
+| `sui-typescript-sdk`     | TypeScript SDK usage              | None                      |
+| `sui-wallet-integration` | Wallet connection, dApp Kit       | References TypeScript SDK |
+| `walrus-storage`         | Walrus blob storage               | May reference SDK         |
+| `seal-encryption`        | Decentralized secrets management  | Works with any storage    |
 
 **Note:** Some skills cross-reference each other for comprehensive guidance. Using the full plugin ensures all references work correctly.
 
@@ -197,6 +200,7 @@ Each skill is self-contained and can be used independently:
 Common combinations for different developer needs:
 
 **Backend/Smart Contract Developer:**
+
 ```bash
 # Just Move development
 cp -r skills/sui-move-development my-plugin/skills/
@@ -204,6 +208,7 @@ cp -r skills/sui-cli-usage my-plugin/skills/
 ```
 
 **Frontend Developer:**
+
 ```bash
 # Just frontend integration
 cp -r skills/sui-typescript-sdk my-plugin/skills/
@@ -211,6 +216,7 @@ cp -r skills/sui-wallet-integration my-plugin/skills/
 ```
 
 **Full Stack with Storage:**
+
 ```bash
 # Everything except encryption
 cp -r skills/sui-move-development my-plugin/skills/
@@ -233,7 +239,6 @@ walrus_enabled: true
 walrus_endpoint: https://testnet-publisher.walrus.space
 explorer: suiscan
 ---
-
 # Project Notes
 
 Add project-specific notes, deployed contract addresses, and configuration details here.
@@ -242,12 +247,14 @@ Add project-specific notes, deployed contract addresses, and configuration detai
 ### Settings Reference
 
 **Required:**
+
 - `network` - Network to use (mainnet, testnet, devnet)
 - `rpc_endpoint` - Sui RPC endpoint URL
 - `active_address` - Default address for transactions
 - `gas_budget` - Default gas budget in MIST
 
 **Optional:**
+
 - `walrus_enabled` - Enable Walrus features (true/false)
 - `walrus_endpoint` - Walrus publisher endpoint
 - `explorer` - Preferred block explorer (suiscan, suivision)
@@ -350,27 +357,32 @@ Claude:
 ## Best Practices Highlights
 
 ### Move Development
+
 - Use resource types for owned objects
 - Test with `sui move test`
 - Follow module naming conventions from Move Book
 
 ### TypeScript SDK
+
 - Use `@mysten/sui` latest version
 - Follow transaction builder patterns
 - Handle errors gracefully
 
 ### Wallet Integration
+
 - Use dApp Kit for standardized wallet connection
 - Support multiple wallet providers automatically
 - Test on testnet before mainnet
 
 ### Walrus Storage
+
 - **Client-side apps**: Use upload relay (user pays storage)
 - **Server-side apps**: Use publisher (app pays storage)
 - **Next.js**: Avoid Walrus SDK on client-side due to WASM issues
 - Use Vite for client-side upload relay implementations
 
 ### Seal Secrets Management
+
 - Use Seal for decentralized secrets management with Sui-based access control
 - Secure sensitive data on Walrus, onchain, or any offchain storage
 - Define and validate access policies on Sui
@@ -382,154 +394,20 @@ This plugin is actively evolving with the Sui ecosystem. Planned features and en
 
 ### 🔄 Coming Soon (v0.2.0)
 
-#### DeepBook Integration
-**Sui's native liquidity layer and DEX protocol**
-
-- **Skill**: `deepbook-integration`
-  - Pool creation and management
-  - Market making strategies
-  - Order placement and execution
-  - Price feed integration
-  - Liquidity provision patterns
-
-- **Commands**:
-  - `/sui-stack-dev:create-pool` - Create DeepBook trading pool
-  - `/sui-stack-dev:place-order` - Place limit/market orders
-  - `/sui-stack-dev:manage-liquidity` - Add/remove liquidity
-
-- **Resources**:
-  - DeepBook SDK examples
-  - Market maker bot templates
-  - Price oracle integration patterns
-
-#### Nautilus Wallet Support
-**Enhanced wallet integration and testing**
-
-- **Skill**: `nautilus-wallet`
-  - Nautilus-specific features
-  - Wallet testing patterns
-  - Multi-wallet coordination
-
-- **Agent**: `wallet-testing-helper`
-  - Automated wallet connection testing
-  - Multi-wallet compatibility checks
-  - Transaction simulation
-
-#### Custom Indexer Development
-**Build custom blockchain data indexers**
-
-- **Skill**: `sui-indexer-development`
-  - Event indexing patterns
-  - Custom RPC node setup
-  - Database schema design
-  - GraphQL API integration
-  - Real-time event streaming
-
-- **Commands**:
-  - `/sui-stack-dev:init-indexer` - Scaffold indexer project
-  - `/sui-stack-dev:deploy-indexer` - Deploy indexer service
-
-- **Agent**: `indexer-optimizer`
-  - Query optimization suggestions
-  - Indexing strategy recommendations
-  - Performance analysis
-
-### 🚀 Planned (v0.3.0+)
-
-#### Advanced Move Patterns
-- **Dynamic fields and objects** - Advanced storage patterns
-- **Programmable transaction blocks** - Complex PTB composition
-- **Kiosk standard** - NFT marketplace primitives
-- **Closed-loop tokens** - Custom token standards
-
-#### DeFi Primitives
-- **Staking mechanisms** - Validator and liquid staking
-- **Lending protocols** - Collateralized lending patterns
-- **AMM patterns** - Automated market maker implementations
-- **Oracle integration** - Price feed and data oracle usage
-
-#### Developer Tools
-- **Gas profiler agent** - Deep gas usage analysis
-- **Contract upgrader** - Safe upgrade patterns and migration
-- **Test generator agent** - Automated test generation from Move code
-- **Documentation generator** - Auto-generate docs from Move contracts
-
-#### Infrastructure
-- **Local node setup** - Run local Sui network
-- **Faucet integration** - Automated testnet token requests
-- **Multi-sig tools** - Multi-signature wallet management
-- **Snapshot and forking** - Mainnet state forking for testing
-
-#### Frontend Enhancements
-- **React Native** - Mobile dApp development
-- **Vue/Svelte** - Additional framework support
-- **UI component library** - Pre-built dApp components
-- **Transaction debugging** - Better error messages and debugging
-
-#### Storage & Data
-- **IPFS integration** - Hybrid Walrus + IPFS storage
-- **Arweave support** - Permanent storage options
-- **Data streaming** - Real-time data sync patterns
-- **Off-chain data** - Best practices for off-chain storage
+- DeepBook Integration
+- Nautilus Support
+- Custom Indexer Development
 
 ### 📋 Community Requested
 
 Want a feature added? Open an issue or submit a PR!
-
-**Top community requests:**
-- zkLogin integration patterns
-- Sui Name Service (SuiNS) integration
-- Cross-chain bridge patterns
-- Gas optimization calculator
-- Smart contract templates library
-- CI/CD integration examples
-
-### 🤝 Contributing to Roadmap
-
-We welcome contributions and suggestions:
-
-1. **Feature Requests**: Open an issue with the `enhancement` label
-2. **Skill Contributions**: Submit PR with new skills following plugin-dev patterns
-3. **Documentation**: Improve existing skills with more examples
-4. **Bug Reports**: Report issues or outdated information
-
-**Priority areas for contributions:**
-- DeepBook trading strategies and examples
-- Custom indexer implementation guides
-- Advanced Move patterns and best practices
-- Production deployment guides
-- Security audit checklists
-
-### 📅 Release Schedule
-
-- **v0.1.x** (Current) - Core Sui stack coverage, bug fixes
-- **v0.2.0** (Q2 2026) - DeepBook, Nautilus, Custom Indexers
-- **v0.3.0** (Q3 2026) - Advanced patterns, DeFi primitives
-- **v0.4.0** (Q4 2026) - Developer tools, infrastructure
-- **v1.0.0** (2027) - Complete Sui ecosystem coverage, stable API
-
-### 💡 Experimental Features
-
-Features being explored (may or may not be added):
-
-- **AI agent for Move** - AI-powered Move code generation
-- **Visual PTB builder** - GUI for building programmable transactions
-- **Gas predictor** - ML-based gas cost prediction
-- **Smart contract fuzzer** - Automated vulnerability testing
-- **Performance benchmarking** - Automated performance testing suite
-
-### 🔍 Stay Updated
-
-- **GitHub Releases**: https://github.com/0x-j/sui-stack-claude-code-plugin/releases
-- **Changelog**: See CHANGELOG.md for detailed version history
-- **Discussions**: https://github.com/0x-j/sui-stack-claude-code-plugin/discussions
-- **Issues**: https://github.com/0x-j/sui-stack-claude-code-plugin/issues
 
 ## Troubleshooting
 
 ### Plugin Not Loading
 
 Ensure plugin is in the correct location:
+
 - Project: `.claude-plugin/sui-stack-dev/`
 - Global: `~/.claude/plugins/sui-stack-dev/`
 
@@ -538,6 +416,7 @@ Verify `plugin.json` is at `.claude-plugin/plugin.json`
 ### Skills Not Activating
 
 Check that your query includes relevant keywords:
+
 - Move, contract, smart contract
 - CLI, command line, sui client
 - SDK, TypeScript, transaction
@@ -548,6 +427,7 @@ Check that your query includes relevant keywords:
 ### Commands Not Found
 
 Ensure plugin is enabled in Claude Code settings:
+
 ```bash
 cc plugins list
 cc plugins enable sui-stack-dev
@@ -566,6 +446,7 @@ This plugin evolves with the Sui stack. Contributions welcome:
 ## Version History
 
 ### 0.1.0 (Initial Release)
+
 - Six comprehensive skills covering Sui stack
 - Three essential commands (init, deploy, test)
 - Two specialized agents (reviewer, integration helper)
